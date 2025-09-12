@@ -153,7 +153,7 @@ export const loginUser = async (req, res) => {
     const token = generateToken(user._id);
     
     // Set the token as HttpOnly cookie
-    const isProduction = process.env.IS_PRODUCTION;
+    const isProduction = process.env.IS_PRODUCTION==="true";
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
