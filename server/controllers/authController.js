@@ -133,6 +133,7 @@ export const resendOtp = async (req, res) => {
   }
 };
 // authController.js - Update loginUser function
+// authController.js - FIXED DOMAIN HANDLING
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -146,16 +147,30 @@ export const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Use consistent cookie settings
-    const isProduction = process.env.IS_PRODUCTION === "true";
+    const isProduction = process.env.NODE_ENV === 'production';
     const token = generateToken(user._id);
     
+    // Get the origin from the request to set proper domain
+    const origin = req.headers.origin || '';
+    let domain = undefined;
+    
+    if (isProduction && origin) {
+      try {
+        const url = new URL(origin);
+        domain = url.hostname;
+        // Remove www. if present for broader domain matching
+        domain = domain.replace(/^www\./, '');
+      } catch (err) {
+        console.log('Error parsing origin:', err);
+      }
+    }
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      
+      domain: domain
     });
 
     res.json({ 
@@ -166,7 +181,7 @@ export const loginUser = async (req, res) => {
         name: user.name,
         avatar: user.avatar,
       },
-      token // Include token in response body
+      token
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

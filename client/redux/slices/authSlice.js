@@ -1,8 +1,8 @@
-// src/redux/slices/authSlice.js
+// src/redux/slices/authSlice.js - FIXED
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
-import api from '@/services/api';
-// Load initial state from localStorage (fallback to default)
+import api from '@/services/api'; // Use your custom api instance
+
+// Load initial state from localStorage
 const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('auth') : null;
 const initialState = storedAuth ? JSON.parse(storedAuth) : {
   userData: null,
@@ -14,13 +14,16 @@ const initialState = storedAuth ? JSON.parse(storedAuth) : {
 
 const login = createAsyncThunk('user/login', async (userCredentials, { rejectWithValue }) => {
   try {
-const response = await api.post('/auth/login', userCredentials);
-
+    console.log('Sending login request to:', '/auth/login');
+    console.log('Credentials:', userCredentials);
+    const response = await api.post('/auth/login', userCredentials);
+    console.log('Login response:', response);
+    console.log('Set-Cookie header:', response.headers['set-cookie']);
     if (response.status !== 200) {
       return rejectWithValue(response.data.message || 'Login failed');
     }
 
-    return response.data; // { user, token, message: "Login successful" }
+    return response.data;
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || err.message || 'Login failed');
   }
@@ -36,7 +39,7 @@ const authSlice = createSlice({
       state.isAuthorized = false;
       state.loading = false;
       state.error = null;
-      localStorage.removeItem('auth'); // Clear localStorage on logout
+      localStorage.removeItem('auth');
     },
     clearError: (state) => {
       state.error = null;
