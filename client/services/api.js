@@ -1,28 +1,26 @@
-// services/api.js - ENHANCED VERSION
+// services/api.js - CORRECTED VERSION
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // This is crucial for cookies
 });
 
-// Request interceptor
+// SINGLE Request interceptor (remove the duplicate)
 api.interceptors.request.use(
   (config) => {
-    // Skip adding token for auth endpoints
+    // Skip adding token for auth endpoints (like login/register)
     const isAuthEndpoint = config.url?.includes('/auth/');
     
-    if (!isAuthEndpoint) {
-      // Get token from localStorage
-      if (typeof window !== 'undefined') {
-        const authData = localStorage.getItem('auth');
-        if (authData) {
-          const { token } = JSON.parse(authData);
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
+    // Always try to use token from localStorage as backup for non-auth endpoints
+    if (!isAuthEndpoint && typeof window !== 'undefined') {
+      const authData = localStorage.getItem('auth');
+      if (authData) {
+        const { token } = JSON.parse(authData);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
       }
     }
@@ -39,7 +37,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// SINGLE Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
