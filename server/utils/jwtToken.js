@@ -10,7 +10,7 @@ export const generateToken = (userId) => {
 
 // Send token as HttpOnly cookie
 export const sendToken = (res, user) => {
-  const isProduction = process.env.IS_PRODUCTION;
+  const isProduction = process.env.IS_PRODUCTION === "true";
   const token = generateToken(user._id);
   res.cookie("token", token, {
     httpOnly: true,
