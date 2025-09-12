@@ -27,42 +27,51 @@ export default function DashboardPage() {
   const router = useRouter();
 
   // Memoize fetchDashboardData to prevent re-creation on every render
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [decisionsResponse, analyticsResponse] = await Promise.all([
-        decisionService.getMyDecisions({ limit: 10 }),
-        userData ? decisionService.getAnalytics(userData._id) : Promise.resolve(null),
-      ]);
+// In dashboard.js - FIX the fetchDashboardData function
+const fetchDashboardData = useCallback(async () => {
+  try {
+    setLoading(true);
+    const decisionsResponse = await decisionService.getMyDecisions({ limit: 10 });
+    const decisionsData = decisionsResponse?.data?.decisions || [];
+    setDecisions(decisionsData);
+    setFilteredDecisions(decisionsData);
 
-      const decisionsData = decisionsResponse?.data?.decisions || [];
-      setDecisions(decisionsData);
-      setFilteredDecisions(decisionsData);
+    // Only fetch analytics if user exists
+    if (userData && userData._id) {
+      try {
+        const analyticsResponse = await decisionService.getAnalytics(userData._id);
+        if (analyticsResponse) {
+          const { analytics } = analyticsResponse.data;
+          const startOfWeek = new Date();
+          startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
 
-      if (analyticsResponse) {
-        const { analytics } = analyticsResponse.data;
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        setStats({
-          totalDecisions: analytics.totalDecisions || 0,
-          avgConfidence: analytics.confidenceSuccessCorrelation || 0,
-          thisWeek: decisionsData.filter((d) => new Date(d.createdAt) >= startOfWeek).length,
-          categoryStats: analytics.categoryStats || {},
-          confidenceDistribution: {
-            low: decisionsData.filter((d) => d.confidenceLevel < 40).length,
-            medium: decisionsData.filter((d) => d.confidenceLevel >= 40 && d.confidenceLevel < 70).length,
-            high: decisionsData.filter((d) => d.confidenceLevel >= 70).length,
-          },
-        });
+          setStats({
+            totalDecisions: analytics.totalDecisions || 0,
+            avgConfidence: analytics.confidenceSuccessCorrelation || 0,
+            thisWeek: decisionsData.filter((d) => new Date(d.createdAt) >= startOfWeek).length,
+            categoryStats: analytics.categoryStats || {},
+            confidenceDistribution: {
+              low: decisionsData.filter((d) => d.confidenceLevel < 40).length,
+              medium: decisionsData.filter((d) => d.confidenceLevel >= 40 && d.confidenceLevel < 70).length,
+              high: decisionsData.filter((d) => d.confidenceLevel >= 70).length,
+            },
+          });
+        }
+      } catch (analyticsError) {
+        console.error("Analytics fetch error:", analyticsError);
+        // Don't block the whole dashboard if analytics fails
       }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false);
     }
-  }, [userData]); // Dependency on userData only
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    if (error.response?.status === 401) {
+      router.replace("/login");
+    }
+  } finally {
+    setLoading(false);
+  }
+}, [userData, router]);
 
   useEffect(() => {
     if (!userData) {
