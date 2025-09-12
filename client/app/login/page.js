@@ -1,4 +1,4 @@
-// app/login/page.js
+// app/login/page.js - ENHANCED
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -9,10 +9,7 @@ import Button from "../../components/ui/Button";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [isClient, setIsClient] = useState(false);
 
   const dispatch = useDispatch();
@@ -22,19 +19,16 @@ export default function LoginPage() {
   useEffect(() => {
     setIsClient(true);
     dispatch(clearError());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (isAuthorized) {
+    
+    // Check if already logged in
+    const authData = localStorage.getItem('auth');
+    if (authData && JSON.parse(authData).isAuthorized) {
       router.push("/dashboard");
     }
-  }, [isAuthorized, router]);
+  }, [dispatch, router]);
 
   const handleInputChange = (field) => (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
@@ -45,7 +39,6 @@ export default function LoginPage() {
     }
   };
 
-  // 🚀 Test User Login Handler
   const handleTestLogin = async () => {
     const result = await dispatch(
       login({ email: "himpreetak@gmail.com", password: "1234" })
@@ -65,9 +58,7 @@ export default function LoginPage() {
         <div className="bg-[#1a1a1a] rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-400">
-              Sign in to your Judgment Call account
-            </p>
+            <p className="text-gray-400">Sign in to your Judgment Call account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -96,7 +87,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* 🚀 Login as Test User Button */}
           <div className="mt-4">
             <Button
               type="button"
@@ -110,11 +100,8 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-gray-400">
-              Don&#39;t have an account?{" "}
-              <Link
-                href="/register"
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
+              Don't have an account?{" "}
+              <Link href="/register" className="text-blue-400 hover:text-blue-300">
                 Sign up
               </Link>
             </p>

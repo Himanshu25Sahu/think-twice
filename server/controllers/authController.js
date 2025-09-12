@@ -132,7 +132,7 @@ export const resendOtp = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-// ✅ Login User
+// authController.js - Update loginUser function
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -141,44 +141,37 @@ export const loginUser = async (req, res) => {
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     if (!user.isVerified)
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
+      return res.status(403).json({ message: "Please verify your email first" });
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Generate token and send it in the response
+    // Use consistent cookie settings
+    const isProduction = process.env.IS_PRODUCTION === "true";
     const token = generateToken(user._id);
     
-    // Set the token as HttpOnly cookie
-    const isProduction = process.env.IS_PRODUCTION==="true";
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      
     });
 
-    // Send response with user data and token
     res.json({ 
       message: "Login successful", 
       user: {
         _id: user._id,
         email: user.email,
         name: user.name,
-        avatar:user.avatar,
-        
-        // include other user fields you need
+        avatar: user.avatar,
       },
-      token // Also include token in response for Redux
+      token // Include token in response body
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
 // ✅ Logout
 export const logoutUser = (req, res) => {
   res.clearCookie("token");

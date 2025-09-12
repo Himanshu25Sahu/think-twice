@@ -1,7 +1,7 @@
 // src/redux/slices/authSlice.js
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
-
+import api from '@/services/api';
 // Load initial state from localStorage (fallback to default)
 const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('auth') : null;
 const initialState = storedAuth ? JSON.parse(storedAuth) : {
@@ -14,12 +14,7 @@ const initialState = storedAuth ? JSON.parse(storedAuth) : {
 
 const login = createAsyncThunk('user/login', async (userCredentials, { rejectWithValue }) => {
   try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/auth/login`, userCredentials, {
-      withCredentials: true, // Send/receive httpOnly cookies
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+const response = await api.post('/auth/login', userCredentials);
 
     if (response.status !== 200) {
       return rejectWithValue(response.data.message || 'Login failed');
