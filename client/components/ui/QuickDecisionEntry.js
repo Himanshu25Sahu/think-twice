@@ -123,7 +123,7 @@ export default function QuickDecisionEntry({ onSubmit }) {
             onClick={() => setIsExpanded(true)}
             className="flex-1 text-left text-gray-400 hover:text-white transition-colors"
           >
-            Share a decision you're facing...
+            Share a decision you&#39;re facing...
           </button>
         </div>
       </div>

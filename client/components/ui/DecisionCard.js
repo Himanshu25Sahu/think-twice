@@ -236,7 +236,7 @@ export default function DecisionCard({ decision, onLike, isLiked, showInteractio
           )}
           {hasVoted && (
             <p className="text-green-400 text-xs mt-2 text-center">
-              ✓ You've voted in this poll
+              ✓ You&#39;ve voted in this poll
             </p>
           )}
         </div>

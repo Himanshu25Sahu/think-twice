@@ -1,0 +1,20 @@
+# Ignore local node_modules (we install fresh inside container)
+node_modules
+
+# Ignore environment files (we'll pass them at runtime)
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore logs and temp files
+npm-debug.log
+yarn-error.log
+*.log
+
+# Ignore OS / editor files
+.DS_Store
+.git
+.gitignore
+.vscode
+.idea
