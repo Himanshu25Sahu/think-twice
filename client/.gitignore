@@ -12,7 +12,7 @@
 
 # testing
 /coverage
-
+/tempfiles
 # next.js
 /.next/
 /out/

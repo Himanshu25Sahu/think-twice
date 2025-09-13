@@ -3,7 +3,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useDispatch } from "react-redux"
 import { logout } from "../../redux/slices/authSlice"
-import api from "../../services/api"
+import api, { logoutUser } from "../../services/api"
 import { useState, useEffect } from "react"
 
 const navigationItems = [
@@ -96,17 +96,13 @@ export default function Sidebar() {
 const handleLogout = async () => {
   try {
     // Immediately clear auth and redirect
+    await logoutUser()
     dispatch(logout())
-    router.replace('/login')   // use replace so user can't go back
- 
-    // Fire logout API in background (optional)
-    api.post('/auth/logout').catch((err) => {
-      console.error("Logout API failed:", err)
-    }) 
   } catch (error) {
-    console.error("Logout error:", error)
-    dispatch(logout())
-    router.replace('/login')
+  console.error('Logout error:', error);
+      // Force logout even if API call fails
+      localStorage.removeItem('auth');
+      router.replace('/login')
   }
 }
 

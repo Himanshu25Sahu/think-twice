@@ -1,72 +1,92 @@
-// services/api.js - CORRECTED VERSION
+// services/api.js - FIXED
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // This is crucial for cookies
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// services/api.js - ADD DEBUG LOGS
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // console.log('🔄 API Request:', config.method?.toUpperCase(), config.url);
-    
-    // Check for token in localStorage
-    if (typeof window !== 'undefined') {
-      const authData = localStorage.getItem('auth');
-      if (authData) {
-        const { token } = JSON.parse(authData);
-        if (token) {
-          // console.log('✅ Adding Authorization header with token:', token.substring(0, 20) + '...');
-          config.headers.Authorization = `Bearer ${token}`;
-        } else {
-          console.log('❌ No token in authData');
-        }
-      } else {
-        console.log('❌ No authData in localStorage');
-      }
-    }
-
-    // console.log('Request headers:', {
-    //   'Content-Type': config.headers['Content-Type'],
-    //   'Authorization': config.headers['Authorization'] ? 'Present' : 'Missing'
-    // });
-
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
-  (error) => {
-    console.error('❌ Request interceptor error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
-
-// Response interceptor
+// services/api.js - FIXED INTERCEPTOR
 api.interceptors.response.use(
   (response) => {
-    // console.log('✅ API Response:', response.status, response.config.url);
-    // console.log('Response headers:', {
-    //   'set-cookie': response.headers['set-cookie'] ? 'Present' : 'Missing',
-    //   'content-type': response.headers['content-type']
-    // });
+    console.log('API Response:', response.status, response.config.url);
     return response;
   },
-  (error) => {
-    console.error('❌ API Error:', {
-      status: error.response?.status,
-      url: error.config?.url,
-      message: error.message
-    });
+  async (error) => {
+    const originalRequest = error.config;
     
-    if (error.response?.status === 401) {
-      console.log('🔒 401 Unauthorized - clearing auth data');
+    console.error('API Error:', error.response?.status, error.config?.url);
+    
+    // Handle 401 errors with token refresh - BUT NOT FOR LOGIN/REFRESH ENDPOINTS
+    if (error.response?.status === 401 && 
+        !originalRequest._retry &&
+        !originalRequest.url.includes('/auth/login') &&
+        !originalRequest.url.includes('/auth/refresh') &&
+        !originalRequest.url.includes('/auth/logout')) {
+      
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh token
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/auth/refresh`, 
+          {},
+          { 
+            withCredentials: true,
+            // Don't retry refresh requests indefinitely
+            _noRetry: true 
+          }
+        );
+        
+        if (refreshResponse.status === 200) {
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Don't infinite loop - clear auth and redirect
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth');
+          window.location.href = '/login';
+        }
+      }
+    }
+    
+    // For logout or other specific endpoints, don't redirect
+    if (error.response?.status === 401 && 
+        originalRequest.url.includes('/auth/logout')) {
+      // Just clear local storage without redirecting
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth');
       }
     }
+    
     return Promise.reject(error);
   }
 );
+
+export const logoutUser = async () => {
+  try {
+    await api.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Always clear client-side state
+    localStorage.removeItem('auth');
+    window.location.href = '/login';
+  }
+};
 
 export default api;

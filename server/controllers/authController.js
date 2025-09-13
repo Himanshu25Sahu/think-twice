@@ -3,6 +3,7 @@ import User from "../models/UserModel.js"
 import { sendToken,generateToken } from "../utils/jwtToken.js";
 import cloudinary from "../utils/cloudinary.js";
 import crypto from "crypto";
+import jwt from 'jsonwebtoken'
 import nodemailer from "nodemailer";
 import dotenv from 'dotenv'
 dotenv.config();
@@ -204,7 +205,104 @@ export const loginUser = async (req, res) => {
   }
 };
 // ✅ Logout
+
+
+// authController.js - ADD THIS FUNCTION
+// authController.js - BETTER VERIFY ENDPOINT
+export const verifyToken = async (req, res) => {
+  try {
+    console.log('=== TOKEN VERIFICATION REQUEST ===');
+    
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(200).json({ 
+        isValid: false, 
+        message: "No token provided",
+        shouldLogout: true
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    
+    if (!user) {
+      return res.status(200).json({ 
+        isValid: false, 
+        message: "User not found",
+        shouldLogout: true
+      });
+    }
+
+    res.json({ 
+      isValid: true, 
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error.message);
+    res.status(200).json({ 
+      isValid: false, 
+      message: "Invalid or expired token",
+      shouldLogout: true
+    });
+  }
+};
+
+// authController.js - ADD THIS FUNCTION
+export const refreshToken = async (req, res) => {
+  try {
+    console.log('=== TOKEN REFRESH REQUEST ===');
+    console.log('Request cookies:', req.cookies);
+    
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ success: false, message: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    // Generate new token
+    const newToken = generateToken(user._id);
+    
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Set new cookie
+    res.cookie("token", newToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Token refreshed successfully"
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error.message);
+    res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
+
+// authController.js - ENHANCED LOGOUT
 export const logoutUser = (req, res) => {
-  res.clearCookie("token");
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/', // IMPORTANT: Clear cookie from all paths
+  });
+  
   res.json({ message: "Logged out successfully" });
 };

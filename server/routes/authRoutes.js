@@ -1,5 +1,5 @@
 import express from 'express'
-import { loginUser, registerUser, verifyOtp,logoutUser} from '../controllers/authController.js';
+import { loginUser, registerUser, verifyOtp,logoutUser, verifyToken, refreshToken} from '../controllers/authController.js';
 import multer from 'multer'
 import { isAuthenticated } from '../utils/isAuthenticated.js';
 
@@ -9,4 +9,6 @@ const upload = multer({ dest: "uploads/" });
 authRoutes.post('/login',loginUser);
 authRoutes.post('/register',upload.single("avatar"),registerUser)
 authRoutes.post('/verify-otp',verifyOtp)
-authRoutes.post('/logout',isAuthenticated,logoutUser)
+authRoutes.get('/verify',verifyToken)
+authRoutes.post('/logout',isAuthenticated,logoutUser);
+authRoutes.post('/refresh',refreshToken);

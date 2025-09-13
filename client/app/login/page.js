@@ -1,4 +1,4 @@
-// app/login/page.js - ENHANCED
+// app/login/page.js - FIXED
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import { login, clearError } from "../../redux/slices/authSlice";
 import FormInput from "../../components/ui/FormInput";
 import Button from "../../components/ui/Button";
 import { useRouter } from "next/navigation";
+import api from "../../services/api"; // ADD THIS IMPORT
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -20,14 +21,25 @@ export default function LoginPage() {
     setIsClient(true);
     dispatch(clearError());
     
-    // Check if already logged in
-    const authData = localStorage.getItem('auth');
-    if (authData) {
-  const parsed = JSON.parse(authData);
-  if (parsed.isAuthorized && parsed.token) {
-    router.push("/dashboard");
-  }
-}
+    // Check if already logged in - FIXED
+    const checkAuthStatus = async () => {
+      try {
+        const authData = localStorage.getItem('auth');
+        if (authData) {
+          const response = await api.get('/auth/verify');
+          if (response.data.isValid) {
+            router.push("/dashboard");
+          } else {
+            localStorage.removeItem('auth');
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('auth');
+      }
+    };
+
+    checkAuthStatus();
   }, [dispatch, router]);
 
   const handleInputChange = (field) => (e) => {

@@ -4,9 +4,11 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import DecisionCard from "../../components/ui/DecisionCard";
 import AnalyticsCard from "../../components/ui/AnalyticsCard";
 import { decisionService } from "../../services/decisionService";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import api from "../../services/api"; // ADD THIS IMPORT
+import { setAuthState } from "../../redux/slices/authSlice"; // ADD THIS IMPORT
 
 const QuickDecisionEntry = dynamic(() => import("../../components/ui/QuickDecisionEntry"), { ssr: false });
 
@@ -14,6 +16,7 @@ export default function DashboardPage() {
   const [decisions, setDecisions] = useState([]);
   const [filteredDecisions, setFilteredDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false); // ADD THIS STATE
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [stats, setStats] = useState({
     totalDecisions: 0,
@@ -23,33 +26,47 @@ export default function DashboardPage() {
     confidenceDistribution: { low: 0, medium: 0, high: 0 },
   });
 
-  const { userData, token, isAuthorized } = useSelector((state) => state.user);
+  const { userData, isAuthorized } = useSelector((state) => state.user);
   const router = useRouter();
+  const dispatch = useDispatch();
 
-  // Check authentication on component mount
-  useEffect(() => {
-    const checkAuth = () => {
+  // Check authentication on component mount - FIXED
+// Dashboard.js - IMPROVED AUTH CHECK
+useEffect(() => {
+  const checkAuth = async () => {
+    try {
       const authData = localStorage.getItem('auth');
       if (!authData) {
         router.replace("/login");
         return;
       }
       
-      const { isAuthorized: storedAuth, token: storedToken } = JSON.parse(authData);
-      if (!storedAuth || !storedToken) {
+      const response = await api.get('/auth/verify');
+      
+      if (response.data.isValid) {
+        dispatch(setAuthState({
+          userData: response.data.user,
+          isAuthorized: true
+        }));
+        setAuthChecked(true);
+      } else if (response.data.shouldLogout) {
+        // Server explicitly says to logout
+        localStorage.removeItem('auth');
         router.replace("/login");
-        return;
       }
-    };
+    } catch (error) {
+      console.error('Auth verification failed:', error);
+      localStorage.removeItem('auth');
+      router.replace("/login");
+    }
+  };
 
-    checkAuth();
-  }, [router]);
+  checkAuth();
+}, [router, dispatch]);
 
-  // Fetch dashboard data - FIXED to prevent multiple calls
   const fetchDashboardData = useCallback(async () => {
-    // Don't fetch if no user data or token
-    if (!userData?._id || !token) {
-      console.log('Skipping fetch - no user data or token');
+    if (!userData?._id) {
+      console.log('Skipping fetch - no user data');
       return;
     }
 
@@ -85,30 +102,21 @@ export default function DashboardPage() {
         }
       } catch (analyticsError) {
         console.error("Analytics fetch error:", analyticsError);
-        // Continue without analytics - don't block the dashboard
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      if (error.response?.status === 401) {
-        // Clear invalid auth data and redirect
-        localStorage.removeItem('auth');
-        router.replace("/login");
-      }
     } finally {
       setLoading(false);
     }
-  }, [userData, token, router]);
+  }, [userData]);
 
-  // Fetch data only when userData and token are available
+  // Fetch data only when userData is available and auth is checked
   useEffect(() => {
-    if (userData?._id && token && isAuthorized) {
-      const timeoutId = setTimeout(() => {
-        fetchDashboardData();
-      }, 100); // Small delay to ensure Redux state is updated
-
-      return () => clearTimeout(timeoutId);
+    if (userData?._id && isAuthorized && authChecked) {
+      fetchDashboardData();
     }
-  }, [userData, token, isAuthorized, fetchDashboardData]);
+  }, [userData, isAuthorized, authChecked, fetchDashboardData]);
+
 
   // Category filter effect
   useEffect(() => {
