@@ -4,6 +4,8 @@ import { sendToken,generateToken } from "../utils/jwtToken.js";
 import cloudinary from "../utils/cloudinary.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import dotenv from 'dotenv'
+dotenv.config();
 
 const sendOtpEmail = async (email, otp) => {
   const transporter = nodemailer.createTransport({
@@ -134,34 +136,57 @@ export const resendOtp = async (req, res) => {
 };
 // authController.js - Update loginUser function
 // authController.js - FIXED DOMAIN HANDLING
-// authController.js - URGENT FIX
+// authController.js - ADD THESE DEBUG LOGS
 export const loginUser = async (req, res) => {
   try {
+    console.log('=== LOGIN REQUEST START ===');
+    console.log('Request origin:', req.headers.origin);
+    console.log('Request headers:', {
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type']
+    });
+
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) {
+      console.log('User not found for email:', email);
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    if (!user.isVerified)
+    if (!user.isVerified) {
+      console.log('User not verified:', email);
       return res.status(403).json({ message: "Please verify your email first" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      console.log('Password mismatch for user:', email);
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const token = generateToken(user._id);
+    console.log('Token generated:', token.substring(0, 20) + '...');
     
-    // CRITICAL FIX: Proper cross-domain cookie settings
     const isProduction = process.env.NODE_ENV === 'production';
-    const frontendDomain = process.env.FRONTEND_URL ? 
-      new URL(process.env.FRONTEND_URL).hostname : undefined;
+    console.log('Environment - Production:', isProduction);
+    console.log('Cookie settings:', {
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      httpOnly: true
+    });
 
+    // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: isProduction, // MUST be true in production
-      sameSite: isProduction ? "none" : "lax", // MUST be "none" for cross-domain
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      domain: isProduction ? frontendDomain : undefined
     });
+
+    console.log('Cookie set in response headers');
+    console.log('=== LOGIN REQUEST END ===');
 
     res.json({ 
       message: "Login successful", 
@@ -174,6 +199,7 @@ export const loginUser = async (req, res) => {
       token
     });
   } catch (err) {
+    console.error('Login error:', err.message);
     res.status(500).json({ message: err.message });
   }
 };

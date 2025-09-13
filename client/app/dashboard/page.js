@@ -23,24 +23,49 @@ export default function DashboardPage() {
     confidenceDistribution: { low: 0, medium: 0, high: 0 },
   });
 
-  const { userData } = useSelector((state) => state.user);
+  const { userData, token, isAuthorized } = useSelector((state) => state.user);
   const router = useRouter();
 
-  // Memoize fetchDashboardData to prevent re-creation on every render
-// In dashboard.js - FIX the fetchDashboardData function
-const fetchDashboardData = useCallback(async () => {
-  try {
-    setLoading(true);
-    const decisionsResponse = await decisionService.getMyDecisions({ limit: 10 });
-    const decisionsData = decisionsResponse?.data?.decisions || [];
-    setDecisions(decisionsData);
-    setFilteredDecisions(decisionsData);
+  // Check authentication on component mount
+  useEffect(() => {
+    const checkAuth = () => {
+      const authData = localStorage.getItem('auth');
+      if (!authData) {
+        router.replace("/login");
+        return;
+      }
+      
+      const { isAuthorized: storedAuth, token: storedToken } = JSON.parse(authData);
+      if (!storedAuth || !storedToken) {
+        router.replace("/login");
+        return;
+      }
+    };
 
-    // Only fetch analytics if user exists
-    if (userData && userData._id) {
+    checkAuth();
+  }, [router]);
+
+  // Fetch dashboard data - FIXED to prevent multiple calls
+  const fetchDashboardData = useCallback(async () => {
+    // Don't fetch if no user data or token
+    if (!userData?._id || !token) {
+      console.log('Skipping fetch - no user data or token');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Fetching dashboard data...');
+      
+      const decisionsResponse = await decisionService.getMyDecisions({ limit: 10 });
+      const decisionsData = decisionsResponse?.data?.decisions || [];
+      setDecisions(decisionsData);
+      setFilteredDecisions(decisionsData);
+
+      // Only fetch analytics if we have a valid user ID
       try {
         const analyticsResponse = await decisionService.getAnalytics(userData._id);
-        if (analyticsResponse) {
+        if (analyticsResponse?.data) {
           const { analytics } = analyticsResponse.data;
           const startOfWeek = new Date();
           startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
@@ -60,27 +85,32 @@ const fetchDashboardData = useCallback(async () => {
         }
       } catch (analyticsError) {
         console.error("Analytics fetch error:", analyticsError);
-        // Don't block the whole dashboard if analytics fails
+        // Continue without analytics - don't block the dashboard
       }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      if (error.response?.status === 401) {
+        // Clear invalid auth data and redirect
+        localStorage.removeItem('auth');
+        router.replace("/login");
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    if (error.response?.status === 401) {
-      router.replace("/login");
-    }
-  } finally {
-    setLoading(false);
-  }
-}, [userData, router]);
+  }, [userData, token, router]);
 
+  // Fetch data only when userData and token are available
   useEffect(() => {
-    if (!userData) {
-      router.replace("/login");
-    } else {
-      fetchDashboardData();
-    }
-  }, [userData, router, fetchDashboardData]);
+    if (userData?._id && token && isAuthorized) {
+      const timeoutId = setTimeout(() => {
+        fetchDashboardData();
+      }, 100); // Small delay to ensure Redux state is updated
 
+      return () => clearTimeout(timeoutId);
+    }
+  }, [userData, token, isAuthorized, fetchDashboardData]);
+
+  // Category filter effect
   useEffect(() => {
     if (selectedCategory === "All Categories") {
       setFilteredDecisions(decisions);
@@ -94,7 +124,12 @@ const fetchDashboardData = useCallback(async () => {
       const response = await decisionService.createDecision(newDecision);
       if (response.success) {
         setDecisions([response.data.decision, ...decisions]);
-        fetchDashboardData();
+        // Don't refetch entire dashboard, just update locally
+        setStats(prev => ({
+          ...prev,
+          totalDecisions: prev.totalDecisions + 1,
+          thisWeek: prev.thisWeek + 1
+        }));
       }
     } catch (error) {
       console.error("Error creating decision:", error);
@@ -125,8 +160,15 @@ const fetchDashboardData = useCallback(async () => {
     }
   };
 
-  if (!userData) {
-    return null;
+  // Show loading until we confirm authentication status
+  if (!userData || !isAuthorized) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   if (loading) {

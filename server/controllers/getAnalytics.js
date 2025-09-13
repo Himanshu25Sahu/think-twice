@@ -1,5 +1,7 @@
 import User from "../models/UserModel.js";
 import analyticsController from "./analyticsController.js";
+import dotenv from 'dotenv'
+dotenv.config();
 
 export const getAnalytics = async (req, res) => {
   try {

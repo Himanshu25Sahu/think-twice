@@ -1,4 +1,6 @@
 import User from "../models/UserModel.js";
+import dotenv from 'dotenv'
+dotenv.config()
 
 // Get my profile
 export const getMyProfile = async (req, res) => {

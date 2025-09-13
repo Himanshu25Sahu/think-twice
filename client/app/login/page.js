@@ -22,9 +22,12 @@ export default function LoginPage() {
     
     // Check if already logged in
     const authData = localStorage.getItem('auth');
-    if (authData && JSON.parse(authData).isAuthorized) {
-      router.push("/dashboard");
-    }
+    if (authData) {
+  const parsed = JSON.parse(authData);
+  if (parsed.isAuthorized && parsed.token) {
+    router.push("/dashboard");
+  }
+}
   }, [dispatch, router]);
 
   const handleInputChange = (field) => (e) => {

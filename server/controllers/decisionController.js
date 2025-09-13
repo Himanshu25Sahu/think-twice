@@ -1,6 +1,8 @@
 import Decision from "../models/DecisionModel.js";
 import User from "../models/UserModel.js";
 import mongoose from "mongoose";
+import dotenv from 'dotenv'
+dotenv.config();
 
 // Validation middleware for create
 const validateDecisionInput = (req, res, next) => {

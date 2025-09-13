@@ -8,44 +8,61 @@ const api = axios.create({
   withCredentials: true, // This is crucial for cookies
 });
 
-// SINGLE Request interceptor (remove the duplicate)
+// services/api.js - ADD DEBUG LOGS
 api.interceptors.request.use(
   (config) => {
-    // Skip adding token for auth endpoints (like login/register)
-    const isAuthEndpoint = config.url?.includes('/auth/');
+    console.log('🔄 API Request:', config.method?.toUpperCase(), config.url);
     
-    // Always try to use token from localStorage as backup for non-auth endpoints
-    if (!isAuthEndpoint && typeof window !== 'undefined') {
+    // Check for token in localStorage
+    if (typeof window !== 'undefined') {
       const authData = localStorage.getItem('auth');
       if (authData) {
         const { token } = JSON.parse(authData);
         if (token) {
+          console.log('✅ Adding Authorization header with token:', token.substring(0, 20) + '...');
           config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          console.log('❌ No token in authData');
         }
+      } else {
+        console.log('❌ No authData in localStorage');
       }
     }
 
-    // Handle multipart/form-data
-    if (config.data instanceof FormData) {
-      config.headers['Content-Type'] = 'multipart/form-data';
-    } else if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json';
-    }
+    console.log('Request headers:', {
+      'Content-Type': config.headers['Content-Type'],
+      'Authorization': config.headers['Authorization'] ? 'Present' : 'Missing'
+    });
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('❌ Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
-// SINGLE Response interceptor
+// Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response:', response.status, response.config.url);
+    console.log('Response headers:', {
+      'set-cookie': response.headers['set-cookie'] ? 'Present' : 'Missing',
+      'content-type': response.headers['content-type']
+    });
+    return response;
+  },
   (error) => {
+    console.error('❌ API Error:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      message: error.message
+    });
+    
     if (error.response?.status === 401) {
-      // Clear auth data on unauthorized
+      console.log('🔒 401 Unauthorized - clearing auth data');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth');
-        window.location.href = '/login';
       }
     }
     return Promise.reject(error);
