@@ -11,7 +11,7 @@ const api = axios.create({
 // services/api.js - ADD DEBUG LOGS
 api.interceptors.request.use(
   (config) => {
-    console.log('🔄 API Request:', config.method?.toUpperCase(), config.url);
+    // console.log('🔄 API Request:', config.method?.toUpperCase(), config.url);
     
     // Check for token in localStorage
     if (typeof window !== 'undefined') {
@@ -19,7 +19,7 @@ api.interceptors.request.use(
       if (authData) {
         const { token } = JSON.parse(authData);
         if (token) {
-          console.log('✅ Adding Authorization header with token:', token.substring(0, 20) + '...');
+          // console.log('✅ Adding Authorization header with token:', token.substring(0, 20) + '...');
           config.headers.Authorization = `Bearer ${token}`;
         } else {
           console.log('❌ No token in authData');
@@ -29,10 +29,10 @@ api.interceptors.request.use(
       }
     }
 
-    console.log('Request headers:', {
-      'Content-Type': config.headers['Content-Type'],
-      'Authorization': config.headers['Authorization'] ? 'Present' : 'Missing'
-    });
+    // console.log('Request headers:', {
+    //   'Content-Type': config.headers['Content-Type'],
+    //   'Authorization': config.headers['Authorization'] ? 'Present' : 'Missing'
+    // });
 
     return config;
   },
@@ -45,11 +45,11 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', response.status, response.config.url);
-    console.log('Response headers:', {
-      'set-cookie': response.headers['set-cookie'] ? 'Present' : 'Missing',
-      'content-type': response.headers['content-type']
-    });
+    // console.log('✅ API Response:', response.status, response.config.url);
+    // console.log('Response headers:', {
+    //   'set-cookie': response.headers['set-cookie'] ? 'Present' : 'Missing',
+    //   'content-type': response.headers['content-type']
+    // });
     return response;
   },
   (error) => {

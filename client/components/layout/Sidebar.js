@@ -64,6 +64,27 @@ const navigationItems = [
       </svg>
     ),
   },
+{
+  name: "About",
+  href: "/about",
+  icon: (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8.228 9a3.001 3.001 0 115.772 1.5c0 1.5-3 1.5-3 3m.01 4h.01"
+      />
+      
+    </svg>
+  ),
+}
+
 ]
 
 export default function Sidebar() {
