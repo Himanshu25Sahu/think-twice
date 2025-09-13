@@ -9,6 +9,8 @@ import dotenv from 'dotenv'
 import { analyticsRoutes } from './routes/analyticsRoutes.js';
 dotenv.config()
 export const app = express();
+
+app.set("trust proxy", 1); // Trust first proxy
 connectDB()
 
 const allowedOrigins = [
