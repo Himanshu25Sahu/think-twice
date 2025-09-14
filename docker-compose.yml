@@ -16,10 +16,12 @@ services:
     build:
       context: ./client
       args:
-        NEXT_PUBLIC_BACKEND_URL: http://jd-server:5000
+        NEXT_PUBLIC_API_URL: "http://jd-server:5000"
     container_name: jd-client
     env_file:
       - ./client/.env.docker
+    environment:
+      - NEXT_PUBLIC_API_URL=http://jd-server:5000
     ports:
       - "3000:3000"
     depends_on:
@@ -29,5 +31,4 @@ services:
 
 networks:
   judgementcall-network:
-    name: judgementcall-network
     driver: bridge
