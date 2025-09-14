@@ -40,6 +40,8 @@ export default function FeedPage() {
       }));
       setDecisions(decisionsWithIds);
       setFilteredDecisions(decisionsWithIds);
+      console.log("This is a ci check from feed");
+      
     } catch (error) {
       console.error("Error fetching public decisions:", error);
     } finally {
