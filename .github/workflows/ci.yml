@@ -72,3 +72,7 @@ jobs:
         run: |
           docker tag jd-server ${{ secrets.DOCKER_USERNAME }}/jd-server:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/jd-server:latest
+      - name: Trigger Render Deploy
+        if: github.ref == 'refs/heads/main'  # only on main branch
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }} -f
