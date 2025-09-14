@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 20
 
-      # Step 3: Cache Node modules (Server)
+      # Step 3: Cache Server Node Modules
       - name: Cache Server Node Modules
         uses: actions/cache@v3
         with:
@@ -41,25 +41,7 @@ jobs:
       - name: Build Server Docker Image
         run: docker build -t jd-server ./server
 
-      # Step 6: Cache Node modules (Client)
-      - name: Cache Client Node Modules
-        uses: actions/cache@v3
-        with:
-          path: client/node_modules
-          key: ${{ runner.os }}-node-client-${{ hashFiles('client/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-client-
-
-      # Step 7: Install Client dependencies
-      - name: Install Client Dependencies
-        run: npm ci
-        working-directory: ./client
-
-      # Step 8: Build Client Docker image
-      - name: Build Client Docker Image
-        run: docker build -t jd-client ./client
-
-      # Step 9: Optional - Push Server Docker image to Docker Hub
+      # Step 6: Push Server Image to Docker Hub (only for main branch)
       - name: Log in to Docker Hub
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v2
@@ -72,7 +54,9 @@ jobs:
         run: |
           docker tag jd-server ${{ secrets.DOCKER_USERNAME }}/jd-server:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/jd-server:latest
+
+      # Step 7: Trigger Render Deploy (Backend)
       - name: Trigger Render Deploy
-        if: github.ref == 'refs/heads/main'  # only on main branch
+        if: github.ref == 'refs/heads/main'
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }} -f
