@@ -48,7 +48,7 @@ export default function About() {
       </h1>
 
       <p className="text-lg text-gray-300 text-center max-w-3xl mb-10">
-        This is not just a decision-making app. It's a full-stack <span className="text-blue-400 font-semibold">DevOps showcase</span> —
+        This is not just a decision-making app. It is a full-stack <span className="text-blue-400 font-semibold">DevOps showcase</span> —
         demonstrating containerized services, GitHub Actions pipelines, automated builds, and zero-click cloud deployments.
       </p>
 
