@@ -174,7 +174,7 @@ export const loginUser = async (req, res) => {
     console.log('Environment - Production:', isProduction);
     console.log('Cookie settings:', {
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? 'lax' : 'lax',
       httpOnly: true
     });
 
@@ -182,7 +182,7 @@ export const loginUser = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? 'lax' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -279,7 +279,7 @@ export const refreshToken = async (req, res) => {
     res.cookie("token", newToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? 'lax' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -300,7 +300,7 @@ export const logoutUser = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: isProduction ? 'lax' : 'lax',
     path: '/', // IMPORTANT: Clear cookie from all paths
   });
   
