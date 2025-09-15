@@ -1,7 +1,8 @@
 "use client";
 
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useState, useEffect } from "react";
-
+import { useRouter } from "next/navigation";
 export default function About() {
   const steps = [
     { name: "Checkout Repo", desc: "Pulls the latest code from GitHub." },
@@ -17,6 +18,7 @@ export default function About() {
     { name: "Vercel Deploy", desc: "Frontend automatically redeploys with latest code." },
   ];
 
+   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(-1);
   const [isRunning, setIsRunning] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -41,6 +43,7 @@ export default function About() {
   };
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white flex flex-col items-center px-6 py-12">
       {/* Title */}
       <h1 className="text-5xl md:text-6xl font-extrabold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
@@ -51,6 +54,14 @@ export default function About() {
         This is not just a decision-making app. It is a full-stack <span className="text-blue-400 font-semibold">DevOps showcase</span> —
         demonstrating containerized services, GitHub Actions pipelines, automated builds, and zero-click cloud deployments.
       </p>
+
+
+      <button
+          onClick={() => router.push("/dashboard")}
+          className="px-6 py-3 rounded-xl text-lg font-semibold shadow-lg transition mb-8 bg-gray-700 hover:bg-gray-600 cursor-pointer"
+        >
+          Explore the app
+        </button>
 
       {/* Pipeline Simulation Button */}
       <button
@@ -64,6 +75,7 @@ export default function About() {
       >
         {isRunning ? "Running Pipeline..." : "Simulate Push to GitHub"}
       </button>
+
 
       {/* Steps Visualization */}
       <div className="w-full max-w-2xl flex flex-col space-y-4">
@@ -130,5 +142,6 @@ export default function About() {
         Made with ❤️ for learning & showcasing DevOps workflows
       </footer>
     </div>
+    </DashboardLayout>
   );
 }
