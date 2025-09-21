@@ -61,10 +61,9 @@ app.use('/analytics', analyticsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: "OK",
     timestamp: new Date().toISOString(),
-    allowedOrigins: allowedOrigins
   });
 });
 
