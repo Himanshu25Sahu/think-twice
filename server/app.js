@@ -42,14 +42,14 @@ app.use(cookieParser());
 
 // Debug middleware
 app.use((req, res, next) => {
-  console.log('🌐 Incoming Request:', {
-    method: req.method,
-    url: req.url,
-    origin: req.headers.origin,
-    hasCookies: !!req.cookies.token,
-    cookies: req.cookies,
-    'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
-  });
+  // console.log('🌐 Incoming Request:', {
+  //   method: req.method,
+  //   url: req.url,
+  //   origin: req.headers.origin,
+  //   hasCookies: !!req.cookies.token,
+  //   cookies: req.cookies,
+  //   'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
+  // });
   next();
 });
 
@@ -69,8 +69,8 @@ app.get('/health', (req, res) => {
 
 // Debug endpoint for auth testing
 app.get('/debug/auth', (req, res) => {
-  console.log('Auth debug - Cookies:', req.cookies);
-  console.log('Auth debug - Headers:', req.headers);
+  // console.log('Auth debug - Cookies:', req.cookies);
+  // console.log('Auth debug - Headers:', req.headers);
   
   res.json({
     cookies: req.cookies,

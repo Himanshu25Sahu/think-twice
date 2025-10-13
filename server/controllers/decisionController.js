@@ -1,6 +1,7 @@
 import Decision from "../models/DecisionModel.js";
 import User from "../models/UserModel.js";
 import mongoose from "mongoose";
+import { redisClient } from "../utils/redisClient.js";
 import dotenv from 'dotenv'
 dotenv.config();
 
@@ -207,37 +208,46 @@ export const createDecision = async (req, res) => {
 // Get my decisions (both public and private)
 // Get my decisions (both public and private)
 export const getMyDecisions = async (req, res) => {
+  const startTime = Date.now();
+
   try {
     const { page = 1, limit = 10, category, reviewed, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const userId = req.user._id;
 
-    const filter = { user: req.user._id }; // always my decisions
+    const filter = { user: userId };
 
-    if (category && category !== "all") {
-      filter.category = category;
-    }
+    if (category && category !== "all") filter.category = category;
+    if (reviewed !== undefined) filter.isReviewed = reviewed === "true";
 
-    if (reviewed !== undefined) {
-      filter.isReviewed = reviewed === "true";
-    }
-
-    const sortOptions = {};
     const validSortFields = ['createdAt', 'updatedAt', 'reviewDate', 'confidenceLevel', 'title'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    sortOptions[sortField] = sortOrder === 'asc' ? 1 : -1;
+    const sortOptions = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
 
     const options = {
       page: Math.max(1, parseInt(page)),
       limit: Math.min(50, Math.max(1, parseInt(limit))),
       sort: sortOptions,
       populate: [
-        { path: "user", select: "name avatar" }, // Populate decision's user
-        { path: "comments.user", select: "name avatar" } // Populate comment users
+        { path: "user", select: "name avatar" },
+        { path: "comments.user", select: "name avatar" }
       ]
     };
 
+    // Unique cache key per user and query
+    const cacheKey = `myDecisions:${userId}:${page}:${limit}:${category || "all"}:${reviewed || "all"}:${sortBy}:${sortOrder}`;
+
+    // 1️⃣ Try Redis cache
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      const elapsed = Date.now() - startTime;
+      console.log(`⚡ Cache hit (${elapsed}ms)`);
+      return res.status(200).json(JSON.parse(cached));
+    }
+
+    // 2️⃣ Cache miss → fetch from MongoDB
     const decisions = await Decision.paginate(filter, options);
 
-    res.status(200).json({
+    const response = {
       success: true,
       data: {
         decisions: decisions.docs,
@@ -250,9 +260,20 @@ export const getMyDecisions = async (req, res) => {
           hasPrev: decisions.hasPrevPage
         }
       }
-    });
+    };
+
+    // 3️⃣ Save to Redis **async**, 60s expiry
+    redisClient
+      .set(cacheKey, JSON.stringify(response), { EX: 60 })
+      .catch(err => console.error("❌ Redis set error:", err));
+
+    const elapsed = Date.now() - startTime;
+    console.log(`🕓 Cache miss (${elapsed}ms) — serving response immediately`);
+
+    return res.status(200).json(response);
+
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error in getMyDecisions:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching my decisions",
@@ -458,19 +479,17 @@ export const getUserDecisions = async (req, res) => {
 // Get public decisions
 // Get public decisions
 export const getPublicDecisions = async (req, res) => {
+  const startTime = Date.now(); // measure timing
+
   try {
-    const { page = 1, limit = 10, category, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 10, category, sortBy = "createdAt", sortOrder = "desc" } = req.query;
 
     const filter = { isPublic: true };
-    
-    if (category && category !== "all") {
-      filter.category = category;
-    }
+    if (category && category !== "all") filter.category = category;
 
-    const sortOptions = {};
-    const validSortFields = ['createdAt', 'updatedAt', 'likeCount', 'commentCount'];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    sortOptions[sortField] = sortOrder === 'asc' ? 1 : -1;
+    const validSortFields = ["createdAt", "updatedAt", "likeCount", "commentCount"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const sortOptions = { [sortField]: sortOrder === "asc" ? 1 : -1 };
 
     const options = {
       page: Math.max(1, parseInt(page)),
@@ -479,13 +498,24 @@ export const getPublicDecisions = async (req, res) => {
       populate: [
         { path: "user", select: "name avatar" },
         { path: "likes", select: "_id" },
-        { path: "comments.user", select: "name avatar" } // Add this to populate comment users
-      ]
+        { path: "comments.user", select: "name avatar" },
+      ],
     };
 
+    const cacheKey = `publicDecisions:${page}:${limit}:${category || "all"}:${sortBy}:${sortOrder}`;
+
+    // Try Redis cache first
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      const elapsed = Date.now() - startTime;
+      console.log(`⚡ Cache hit (${elapsed}ms)`);
+      return res.status(200).json(JSON.parse(cached));
+    }
+
+    // Cache miss → fetch from MongoDB
     const decisions = await Decision.paginate(filter, options);
 
-    res.status(200).json({
+    const response = {
       success: true,
       data: {
         decisions: decisions.docs,
@@ -495,19 +525,31 @@ export const getPublicDecisions = async (req, res) => {
           totalPages: decisions.totalPages,
           totalDocs: decisions.totalDocs,
           hasNext: decisions.hasNextPage,
-          hasPrev: decisions.hasPrevPage
-        }
-      }
-    });
+          hasPrev: decisions.hasPrevPage,
+        },
+      },
+    };
+
+    const elapsed = Date.now() - startTime;
+    console.log(`🕓 Cache miss (${elapsed}ms) — serving response immediately`);
+
+    // Save to Redis **async**, no await → first load not delayed
+    redisClient
+      .set(cacheKey, JSON.stringify(response), { EX: 60 })
+      .catch((err) => console.error("❌ Redis set error:", err));
+
+    return res.status(200).json(response);
+
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error in getPublicDecisions:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching public decisions",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
     });
   }
 };
+
 
 // Delete a decision
 export const deleteDecision = async (req, res) => {

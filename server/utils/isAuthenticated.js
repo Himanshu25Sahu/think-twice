@@ -7,13 +7,13 @@ dotenv.config();
 // isAuthenticated.js - ADD DEBUG LOGS
 export const isAuthenticated = async (req, res, next) => {
   try {
-    console.log('=== AUTH MIDDLEWARE CHECK ===');
-    console.log('Request URL:', req.url);
-    console.log('Request cookies:', req.cookies);
-    console.log('Request origin:', req.headers.origin);
+    // console.log('=== AUTH MIDDLEWARE CHECK ===');
+    // console.log('Request URL:', req.url);
+    // console.log('Request cookies:', req.cookies);
+    // console.log('Request origin:', req.headers.origin);
 
     const token = req.cookies.token;
-    console.log('Token from cookie:', token ? token.substring(0, 20) + '...' : 'MISSING');
+    // console.log('Token from cookie:', token ? token.substring(0, 20) + '...' : 'MISSING');
 
     if (!token) {
       console.log('❌ No token found in cookies');
@@ -21,7 +21,7 @@ export const isAuthenticated = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decoded successfully for user ID:', decoded.id);
+    // console.log('Token decoded successfully for user ID:', decoded.id);
 
     req.user = await User.findById(decoded.id).select("-password");
     
@@ -30,7 +30,7 @@ export const isAuthenticated = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "User not found" });
     }
 
-    console.log('✅ Authentication successful for user:', req.user.email);
+    // console.log('✅ Authentication successful for user:', req.user.email);
     next();
   } catch (error) {
     console.error('❌ Auth middleware error:', error.message);

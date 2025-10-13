@@ -140,12 +140,12 @@ export const resendOtp = async (req, res) => {
 // authController.js - ADD THESE DEBUG LOGS
 export const loginUser = async (req, res) => {
   try {
-    console.log('=== LOGIN REQUEST START ===');
-    console.log('Request origin:', req.headers.origin);
-    console.log('Request headers:', {
-      'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type']
-    });
+    // console.log('=== LOGIN REQUEST START ===');
+    // console.log('Request origin:', req.headers.origin);
+    // console.log('Request headers:', {
+    //   'user-agent': req.headers['user-agent'],
+    //   'content-type': req.headers['content-type']
+    // });
 
     const { email, password } = req.body;
     console.log('Login attempt for email:', email);
@@ -168,15 +168,15 @@ export const loginUser = async (req, res) => {
     }
 
     const token = generateToken(user._id);
-    console.log('Token generated:', token.substring(0, 20) + '...');
+    // console.log('Token generated:', token.substring(0, 20) + '...');
     
     const isProduction = process.env.NODE_ENV === 'production';
-    console.log('Environment - Production:', isProduction);
-    console.log('Cookie settings:', {
-      secure: isProduction,
-      sameSite: isProduction ? 'lax' : 'lax',
-      httpOnly: true
-    });
+    // console.log('Environment - Production:', isProduction);
+    // console.log('Cookie settings:', {
+    //   secure: isProduction,
+    //   sameSite: isProduction ? 'lax' : 'lax',
+    //   httpOnly: true
+    // });
 
     // Set cookie
     res.cookie("token", token, {
@@ -186,8 +186,8 @@ export const loginUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    console.log('Cookie set in response headers');
-    console.log('=== LOGIN REQUEST END ===');
+    // console.log('Cookie set in response headers');
+    // console.log('=== LOGIN REQUEST END ===');
 
     res.json({ 
       message: "Login successful", 
@@ -211,7 +211,7 @@ export const loginUser = async (req, res) => {
 // authController.js - BETTER VERIFY ENDPOINT
 export const verifyToken = async (req, res) => {
   try {
-    console.log('=== TOKEN VERIFICATION REQUEST ===');
+    // console.log('=== TOKEN VERIFICATION REQUEST ===');
     
     const token = req.cookies.token;
     if (!token) {
@@ -255,8 +255,8 @@ export const verifyToken = async (req, res) => {
 // authController.js - ADD THIS FUNCTION
 export const refreshToken = async (req, res) => {
   try {
-    console.log('=== TOKEN REFRESH REQUEST ===');
-    console.log('Request cookies:', req.cookies);
+    // console.log('=== TOKEN REFRESH REQUEST ===');
+    // console.log('Request cookies:', req.cookies);
     
     const token = req.cookies.token;
     if (!token) {
