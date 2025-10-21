@@ -1,4 +1,4 @@
-import { connectDB } from './database/connection.js';
+
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import { authRoutes } from './routes/authRoutes.js';
@@ -11,7 +11,7 @@ dotenv.config()
 export const app = express();
 
 app.set("trust proxy", 1); // Trust first proxy
-connectDB()
+// connectDB()
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
